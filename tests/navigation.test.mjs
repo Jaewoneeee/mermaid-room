@@ -1,16 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
+import { sequenceExample } from "../lib/examples.ts";
 import {
   extractSections,
   linkSections,
   normalizeLabel,
 } from "../lib/navigation.ts";
 
-test("aa.md exposes seven stages, with source labels to anchor each stage", () => {
-  const sections = extractSections(
-    readFileSync(new URL("../aa.md", import.meta.url), "utf8"),
-  );
+test("bundled example exposes seven stages, with source labels to anchor each stage", () => {
+  const sections = extractSections(sequenceExample);
   assert.equal(sections.length, 7);
   assert.equal(sections[0].title, "0. 상품·제휴처 조회 (공개 API)");
   assert.equal(sections[6].title, "6. 고객 취소 (선택)");
