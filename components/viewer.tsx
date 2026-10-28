@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import DiagramNavigation from "@/components/diagram-navigation";
 import {
@@ -50,6 +50,13 @@ export default function Viewer({ example }: { example: string }) {
   const [notice, setNotice] = useState("");
   const [ready, setReady] = useState(false);
   const [space, setSpace] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const previousView = useRef<{
+    zoom: number;
+    left: number;
+    top: number;
+  } | null>(null);
+  const focusTrigger = useRef<HTMLButtonElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const upload = useRef<HTMLInputElement>(null);
   const shell = useRef<HTMLDivElement>(null);
@@ -230,6 +237,67 @@ export default function Viewer({ example }: { example: string }) {
     };
   }, [active, ready]);
 
+  const leaveFocus = useCallback(() => {
+    setFocusMode(false);
+    if (document.fullscreenElement === shell.current) {
+      void document.exitFullscreen().catch(() => {});
+    }
+    const saved = previousView.current;
+    previousView.current = null;
+    if (saved) {
+      setZoom(saved.zoom);
+      requestAnimationFrame(() => {
+        viewport.current?.scrollTo(saved.left, saved.top);
+        focusTrigger.current?.focus({ preventScroll: true });
+      });
+    }
+  }, []);
+
+  async function enterFocus() {
+    if (!drawing || error) return;
+    previousView.current = {
+      zoom,
+      left: viewport.current?.scrollLeft || 0,
+      top: viewport.current?.scrollTop || 0,
+    };
+    setFocusMode(true);
+    try {
+      if (!document.fullscreenElement && shell.current?.requestFullscreen)
+        await shell.current.requestFullscreen();
+    } catch {
+      // Keep the edge-to-edge view when native fullscreen is unavailable.
+    }
+    viewport.current?.focus({ preventScroll: true });
+  }
+
+  useEffect(() => {
+    if (!focusMode || !drawing || !viewport.current) return;
+    const canvas = viewport.current;
+    const observer = new ResizeObserver(() => {
+      setZoom(
+        Math.max(0.05, Math.min(3, (canvas.clientWidth - 80) / drawing.width)),
+      );
+      canvas.scrollTo(0, 0);
+    });
+    observer.observe(canvas);
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        leaveFocus();
+      }
+    };
+    const fullscreen = () => {
+      if (!document.fullscreenElement) leaveFocus();
+    };
+    window.addEventListener("keydown", escape);
+    document.addEventListener("fullscreenchange", fullscreen);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("keydown", escape);
+      document.removeEventListener("fullscreenchange", fullscreen);
+    };
+  }, [focusMode, drawing, leaveFocus]);
+
   function load(text: string, title: string) {
     needsFit.current = true;
     setSelected(0);
@@ -318,7 +386,7 @@ export default function Viewer({ example }: { example: string }) {
 
   return (
     <div
-      className="app-shell"
+      className={`app-shell ${focusMode ? "focus-mode" : ""}`}
       ref={shell}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
@@ -495,25 +563,18 @@ export default function Viewer({ example }: { example: string }) {
                 <ArrowDownToLine size={16} />
               </button>
               <button
-                className="icon-button"
-                title="전체 화면"
-                onClick={async () => {
-                  try {
-                    if (document.fullscreenElement)
-                      await document.exitFullscreen();
-                    else await shell.current?.requestFullscreen();
-                  } catch {
-                    setNotice(
-                      "이 브라우저에서는 전체 화면을 사용할 수 없습니다.",
-                    );
-                  }
-                }}
+                ref={focusTrigger}
+                className="button compact subtle"
+                title="메뉴 없이 전체 화면으로 보기"
+                aria-label="집중 모드"
+                disabled={!drawing || !!error}
+                onClick={() => void enterFocus()}
               >
-                <Maximize size={16} />
+                <Maximize size={16} /> 집중 모드
               </button>
             </div>
           </div>
-          {drawing && !error && (
+          {drawing && !error && !focusMode && (
             <DiagramNavigation
               key={drawing.svg}
               source={drawing.source}
@@ -699,7 +760,18 @@ export default function Viewer({ example }: { example: string }) {
           <GitBranch size={12} /> Mermaid로 그립니다
         </span>
       </footer>
-      {notice && (
+      {focusMode && (
+        <button
+          className="focus-exit"
+          aria-label="집중 모드 종료"
+          title="집중 모드 종료 (Esc)"
+          onClick={leaveFocus}
+        >
+          <X size={16} />
+          <span>Esc · 돌아가기</span>
+        </button>
+      )}
+      {notice && !focusMode && (
         <div className="toast" role="status">
           <Check size={16} />
           {notice}
