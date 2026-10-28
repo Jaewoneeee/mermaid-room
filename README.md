@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mermaid Room
 
-## Getting Started
+노션에서 작성한 Mermaid를 넓은 화면에서 읽기 위한 로컬 우선 웹앱입니다.
 
-First, run the development server:
+## 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev -- --port 3001
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3001 에서 열 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test
+npm run lint
+npm run build
+npm run start -- --port 3001
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 기능
 
-## Learn More
+- Mermaid 코드와 Markdown 코드 블록을 실시간 렌더링
+- `.md`, `.mmd`, `.mermaid`, `.txt` 파일 열기 및 드래그 앤 드롭 (최대 1MB)
+- 여러 Mermaid 블록이 포함된 문서에서 다이어그램 선택
+- 확대·축소, 너비 맞춤, 전체 보기, 100% 보기
+- Ctrl/⌘ + 휠 또는 트랙패드 핀치로 커서 중심 확대
+- Space + 드래그 또는 마우스 가운데 버튼으로 화면 이동
+- 시퀀스 다이어그램의 참여자·그룹 헤더 고정 (가로 이동과 확대 동기화)
+- 메시지·API·참여자 검색, 결과 강조와 이전·다음 이동 (Enter / Shift+Enter)
+- Ctrl/⌘ + F로 다이어그램 검색, Escape로 검색 지우기 (코드 편집 중에는 브라우저 기본 검색 유지)
+- 시퀀스 다이어그램의 단계 목차: `%% 1. 단계 이름` 또는 `%% # 단계 이름` 주석에서 해당 메시지로 이동
+- 전체 화면, 코드 패널 접기, 구문 오류 안내
+- 브라우저 localStorage에 현재 문서 및 제목 저장
+- Markdown 원본과 SVG 다운로드
 
-To learn more about Next.js, take a look at the following resources:
+`aa.md`를 초기 예제로 사용합니다. 다른 다이어그램을 열거나 예제를 선택하면 현재 문서를 대체합니다. 보관할 문서는 먼저 Markdown으로 다운로드하세요.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 데이터와 범위
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+사용자가 입력하거나 연 파일은 브라우저에서 렌더링하며 서버에 업로드하지 않습니다. 자동 저장은 같은 브라우저와 주소에서만 복원됩니다. 서버 문서 저장, 팀 공유 링크, 노션 API 연동은 포함하지 않습니다.
 
-## Deploy on Vercel
+Next.js App Router, React, Mermaid와 Lucide 아이콘으로 구성합니다. Mermaid는 클라이언트에서 지연 로딩하고 strict 보안 모드로 실행합니다. 헤더 고정은 시퀀스 다이어그램에서만 지원하며 렌더링 SVG의 상단을 복제해 표시합니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+검색은 현재 다이어그램에 표시된 텍스트를 대상으로 합니다. 목차에서 렌더링된 메시지나 설명에 연결할 수 없는 단계는 비활성화됩니다. 검색 강조는 SVG 다운로드에 포함되지 않습니다. `npm test`는 Node.js 22.6 이상에서 실행합니다.
